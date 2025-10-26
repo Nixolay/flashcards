@@ -175,6 +175,8 @@ class MainActivity : AppCompatActivity() {
                 val card = groups[currentGroupIndex].cards[position]
                 card.isFlipped = !card.isFlipped
                 cardAdapter.notifyItemChanged(position)
+                // Добавьте логи для отладки
+                println("Card clicked at position $position, isFlipped: ${card.isFlipped}")
             },
             onCardLongClick = { position ->
                 showEditCardDialog(position)
