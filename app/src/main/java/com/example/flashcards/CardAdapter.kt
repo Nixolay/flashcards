@@ -13,6 +13,7 @@ class CardAdapter(
     private val onCardLongClick: (Int) -> Unit
 ) : RecyclerView.Adapter<CardAdapter.ViewHolder>() {
 
+    // Инициализация Markwon при первом использовании
     private lateinit var markwon: Markwon
 
     fun updateCards(newCards: List<Flashcard>) {
@@ -21,6 +22,7 @@ class CardAdapter(
     }
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        // Убедитесь, что R.id.textCardContent есть в item_flashcard.xml
         val textContent: TextView = view.findViewById(R.id.textCardContent)
     }
 
@@ -28,6 +30,7 @@ class CardAdapter(
         val view = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_flashcard, parent, false)
 
+        // Инициализация Markwon один раз, при создании первого ViewHolder
         if (!::markwon.isInitialized) {
             markwon = Markwon.create(parent.context)
         }
@@ -41,13 +44,13 @@ class CardAdapter(
         val text = if (card.isFlipped) card.back else card.front
         markwon.setMarkdown(holder.textContent, text)
 
-        // Убеждаемся, что TextView не перехватывает клики
+        // Убеждаемся, что TextView не перехватывает клики (важный шаг для работы onCardClick на itemView)
         holder.textContent.isClickable = false
         holder.textContent.isFocusable = false
         holder.textContent.isFocusableInTouchMode = false
         holder.textContent.movementMethod = null
 
-        // Настраиваем обработчики кликов для всей карточки
+        // Настраиваем обработчики кликов для всей карточки (itemView)
         holder.itemView.setOnClickListener {
             onCardClick(position)
         }

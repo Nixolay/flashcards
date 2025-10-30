@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_flip_all"
+        android:icon="@android:drawable/ic_menu_rotate"
+        android:title="Перевернуть все"
+        app:showAsAction="ifRoom" />
+
+    <item
+        android:id="@+id/action_export"
+        android:icon="@android:drawable/ic_menu_save"
+        android:title="Export/Save"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_add_card"
+        android:icon="@android:drawable/ic_input_add"
+        android:title="Add Card"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_new_group"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="New Group"
+        app:showAsAction="never" />
+
+    <item
+        android:id="@+id/action_import"
+        android:icon="@android:drawable/ic_menu_upload"
+        android:title="Import"
+        app:showAsAction="never" />
+</menu>

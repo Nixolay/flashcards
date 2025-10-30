@@ -1,12 +1,10 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
-    <style name="Base.Theme.Flashcards" parent="Theme.Material3.DynamicColors.Dark.NoActionBar">
-        <!-- Цвета основной темы -->
+    <style name="Base.Theme.Flashcards" parent="Theme.Material3.DayNight">
+        <item name="windowActionBar">true</item>
+        <item name="windowNoTitle">false</item>
         <item name="colorPrimary">@color/md_theme_light_primary</item>
-        <item name="colorOnPrimary">@color/md_theme_light_onPrimary</item>
-        <item name="colorSecondary">@color/md_theme_light_secondary</item>
-        <item name="colorOnSecondary">@color/md_theme_light_onSecondary</item>
-        <item name="android:colorBackground">#3C3C3C</item>
-        <item name="colorSurface">@color/md_theme_light_surface</item>
-        <item name="colorOnSurface">@color/md_theme_light_onSurface</item>
+        <item name="actionModeTheme">@style/ThemeOverlay.AppCompat.DayNight.ActionBar</item>
+        <item name="actionBarPopupTheme">@style/ThemeOverlay.AppCompat.DayNight</item>
+        <item name="android:colorBackground">@color/background_color</item>
     </style>
 </resources>

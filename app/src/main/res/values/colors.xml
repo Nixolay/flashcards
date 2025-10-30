@@ -8,5 +8,5 @@
     <color name="md_theme_light_onBackground">#212121</color>   <!-- Темный текст -->
     <color name="md_theme_light_surface">#FFFFFF</color>        <!-- Поверхности карточек -->
     <color name="md_theme_light_onSurface">#212121</color>      <!-- Текст на карточках -->
-
+    <color name="background_color">#3C3C3C</color>
 </resources>

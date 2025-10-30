@@ -4,13 +4,12 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.Drawable
+
 import android.net.Uri
 import android.os.Bundle
-import android.view.View
-import android.view.ViewGroup
-import android.view.WindowManager
-import android.widget.*
+import android.view.* import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.ActionBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
@@ -26,23 +25,23 @@ class MainActivity : AppCompatActivity() {
 
     private val groups = mutableListOf<FlashcardGroup>()
     private var currentGroupIndex = 0
-    set(value) {
-        field = value
-        title = "Card: ${groups[value].name}"
-        cardAdapter.updateCards(groups[value].cards)
-    }
+        set(value) {
+            field = value
+            groups[value].cards.forEach { it.isFlipped = false }
+            cardAdapter.updateCards(groups[value].cards)
+            // Обновляем Spinner в Action Bar при смене группы (если он уже создан)
+            if (supportActionBar?.customView is Spinner) {
+                (supportActionBar?.customView as Spinner).setSelection(value)
+            }
+        }
 
     private lateinit var groupSpinner: Spinner
     private lateinit var recyclerView: RecyclerView
 
-    // ✅ Изменённые типы переменных
-    private lateinit var addButton: ImageButton
-    private lateinit var newGroupButton: ImageButton
-    private lateinit var exportButton: ImageButton
-    private lateinit var importButton: ImageButton
-
     private lateinit var cardAdapter: CardAdapter
 
+    // ... (весь код exportFileLauncher, importFileLauncher, swipeToDeleteCallback) ...
+    // (Код SAF и Свайпа для удаления остается без изменений, я его скрою для краткости)
     // === SAF: Экспорт с выбором места ===
     private val exportFileLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/json")) { uri: Uri? ->
         if (uri != null) {
@@ -71,8 +70,10 @@ class MainActivity : AppCompatActivity() {
                     groups.clear()
                     groups.addAll(loaded)
                     groups.forEach { group -> group.cards.forEach { it.isFlipped = false } }
+
                     setupGroupSpinner()
                     currentGroupIndex = 0
+
                     Toast.makeText(this, "Imported", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -94,14 +95,11 @@ class MainActivity : AppCompatActivity() {
             deletedCard = groups[currentGroupIndex].cards[position]
             deletedPosition = position
 
-            // Удаляем из списка и обновляем UI
             groups[currentGroupIndex].cards.removeAt(position)
             cardAdapter.notifyItemRemoved(position)
 
-            // Показываем Snackbar с отменой
-            Snackbar.make(recyclerView, "Dell card?", Snackbar.LENGTH_LONG)
+            Snackbar.make(this@MainActivity.recyclerView, "Dell card?", Snackbar.LENGTH_LONG)
                 .setAction("Restore") {
-                    // Восстанавливаем карточку
                     if (deletedCard != null) {
                         groups[currentGroupIndex].cards.add(deletedPosition, deletedCard!!)
                         cardAdapter.notifyItemInserted(deletedPosition)
@@ -112,11 +110,10 @@ class MainActivity : AppCompatActivity() {
                 .addCallback(object : Snackbar.Callback() {
                     override fun onDismissed(transientBottomBar: Snackbar?, event: Int) {
                         super.onDismissed(transientBottomBar, event)
-                        // Если пользователь НЕ нажал "Отмена" — окончательно удаляем
                         if (event != DISMISS_EVENT_ACTION && deletedCard != null) {
                             deletedCard = null
                             deletedPosition = -1
-                            saveGroupsToFile() // Сохраняем изменения
+                            saveGroupsToFile()
                         }
                     }
                 })
@@ -152,18 +149,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
         groupSpinner = findViewById(R.id.groupSpinner)
         recyclerView = findViewById(R.id.recyclerView)
-
-        // ✅ Теперь это ImageButtons
-        addButton = findViewById(R.id.addButton)
-        newGroupButton = findViewById(R.id.newGroupButton)
-        exportButton = findViewById(R.id.exportButton)
-        importButton = findViewById(R.id.importButton)
 
         loadGroupsFromFile()
         if (groups.isEmpty()) {
@@ -176,8 +168,6 @@ class MainActivity : AppCompatActivity() {
                 val card = groups[currentGroupIndex].cards[position]
                 card.isFlipped = !card.isFlipped
                 cardAdapter.notifyItemChanged(position)
-                // Добавьте логи для отладки
-                println("Card clicked at position $position, isFlipped: ${card.isFlipped}")
             },
             onCardLongClick = { position ->
                 showEditCardDialog(position)
@@ -186,28 +176,76 @@ class MainActivity : AppCompatActivity() {
 
         recyclerView.adapter = cardAdapter
         recyclerView.layoutManager = LinearLayoutManager(this)
-        ItemTouchHelper(swipeToDeleteCallback).attachToRecyclerView(recyclerView) // 👈 подключаем свайп
+        ItemTouchHelper(swipeToDeleteCallback).attachToRecyclerView(recyclerView)
 
         setupGroupSpinner()
 
-        // ✅ Добавляем обработчик долгого нажатия на Spinner
-        groupSpinner.setOnLongClickListener {
-            showGroupOptionsDialog()
-            true
+        // === ПЕРЕМЕЩЕНИЕ SPINNER В ACTION BAR ===
+        val actionBar = supportActionBar
+        if (actionBar != null) {
+            val spinnerInActionBar = Spinner(actionBar.themedContext)
+
+            spinnerInActionBar.adapter = groupSpinner.adapter
+            spinnerInActionBar.onItemSelectedListener = groupSpinner.onItemSelectedListener
+
+            actionBar.displayOptions = ActionBar.DISPLAY_SHOW_CUSTOM
+            actionBar.customView = spinnerInActionBar
+            actionBar.setDisplayShowTitleEnabled(false)
+
+            spinnerInActionBar.setOnLongClickListener {
+                showGroupOptionsDialog()
+                true
+            }
+        }
+    }
+
+    // === РЕАЛИЗАЦИЯ МЕНЮ ACTION BAR ===
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        return when (item.itemId) {
+            // ✅ ОБРАБОТЧИК НОВОЙ КНОПКИ
+            R.id.action_flip_all -> {
+                flipAllCards()
+                true
+            }
+            R.id.action_add_card -> {
+                showAddCardDialog()
+                true
+            }
+            R.id.action_new_group -> {
+                showNewGroupDialog()
+                true
+            }
+            R.id.action_export -> {
+                exportFileLauncher.launch("flashcards.json")
+                true
+            }
+            R.id.action_import -> {
+                importFileLauncher.launch(arrayOf("application/json"))
+                true
+            }
+            else -> super.onOptionsItemSelected(item)
+        }
+    }
+
+    // ✅ НОВАЯ ФУНКЦИЯ ДЛЯ ПЕРЕВОРОТА КАРТОЧЕК
+    private fun flipAllCards() {
+        if (groups.isEmpty() || groups[currentGroupIndex].cards.isEmpty()) {
+            Toast.makeText(this, "Нет карточек для переворота", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        addButton.setOnClickListener { showAddCardDialog() }
-        newGroupButton.setOnClickListener { showNewGroupDialog() }
-        exportButton.setOnClickListener { exportFileLauncher.launch("flashcards.json") }
-        importButton.setOnClickListener {
-            importFileLauncher.launch(arrayOf("application/json"))
+        // Переворачиваем все карточки в текущей группе
+        groups[currentGroupIndex].cards.forEach { card ->
+            card.isFlipped = !card.isFlipped
         }
 
-        // Подсказки при долгом нажатии на кнопки
-        addButton.setOnLongClickListener { Toast.makeText(this, "Добавить карточку", Toast.LENGTH_SHORT).show(); true }
-        newGroupButton.setOnLongClickListener { Toast.makeText(this, "Создать группу", Toast.LENGTH_SHORT).show(); true }
-        exportButton.setOnLongClickListener { Toast.makeText(this, "Экспортировать", Toast.LENGTH_SHORT).show(); true }
-        importButton.setOnLongClickListener { Toast.makeText(this, "Импортировать", Toast.LENGTH_SHORT).show(); true }
+        // Обновляем весь список в адаптере
+        cardAdapter.notifyDataSetChanged()
     }
 
     // === Управление группами ===
@@ -232,17 +270,22 @@ class MainActivity : AppCompatActivity() {
             }
         }
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item)
+
         groupSpinner.adapter = adapter
         groupSpinner.setSelection(currentGroupIndex)
+
         groupSpinner.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
             override fun onItemSelected(parent: AdapterView<*>, view: View?, position: Int, id: Long) {
-                currentGroupIndex = position
+                if (position != currentGroupIndex) {
+                    currentGroupIndex = position
+                }
             }
             override fun onNothingSelected(parent: AdapterView<*>) {}
         }
     }
 
     private fun showGroupOptionsDialog() {
+        if (groups.isEmpty()) return
         val options = arrayOf("Edit", "Remove")
         AlertDialog.Builder(this)
             .setTitle("Group: ${groups[currentGroupIndex].name}")
@@ -270,6 +313,8 @@ class MainActivity : AppCompatActivity() {
                         groups[currentGroupIndex].name = newName
                         setupGroupSpinner()
                         saveGroupsToFile()
+                        (supportActionBar?.customView as? Spinner)?.adapter = groupSpinner.adapter
+                        (supportActionBar?.customView as? Spinner)?.setSelection(currentGroupIndex)
                     } else {
                         Toast.makeText(this, "Group already exists", Toast.LENGTH_SHORT).show()
                     }
@@ -298,6 +343,9 @@ class MainActivity : AppCompatActivity() {
                 cardAdapter.updateCards(groups[currentGroupIndex].cards)
                 saveGroupsToFile()
                 Toast.makeText(this, "Group '$groupName' removed", Toast.LENGTH_SHORT).show()
+
+                (supportActionBar?.customView as? Spinner)?.adapter = groupSpinner.adapter
+                (supportActionBar?.customView as? Spinner)?.setSelection(currentGroupIndex)
             }
             .setNegativeButton("Cancel", null)
             .show()
@@ -323,12 +371,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .create() // 👈 Используем .create() вместо .show() сразу
+            .create()
 
-        // 👇 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Установка режима ввода
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
-        dialog.show() // 👈 Показываем диалог после настройки
+        dialog.show()
     }
 
     private fun showEditCardDialog(position: Int) {
@@ -354,12 +401,11 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .create() // 👈 Используем .create()
+            .create()
 
-        // 👇 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Установка режима ввода
         dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
 
-        dialog.show() // 👈 Показываем диалог
+        dialog.show()
     }
 
     private fun showNewGroupDialog() {
@@ -375,6 +421,9 @@ class MainActivity : AppCompatActivity() {
                     setupGroupSpinner()
                     currentGroupIndex = groups.lastIndex
                     saveGroupsToFile()
+
+                    (supportActionBar?.customView as? Spinner)?.adapter = groupSpinner.adapter
+                    (supportActionBar?.customView as? Spinner)?.setSelection(currentGroupIndex)
                 } else {
                     Toast.makeText(this, "The group already exists", Toast.LENGTH_SHORT).show()
                 }
@@ -383,7 +432,7 @@ class MainActivity : AppCompatActivity() {
             .show()
     }
 
-    // === Автоматическое сохранение/загрузка в Android/media/... ===
+    // === Сохранение/Загрузка ===
 
     private fun getFlashcardsFile(): File {
         val mediaDirs = getExternalMediaDirs()
