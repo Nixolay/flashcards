@@ -8,6 +8,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
 import android.widget.*
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -25,11 +26,11 @@ class MainActivity : AppCompatActivity() {
 
     private val groups = mutableListOf<FlashcardGroup>()
     private var currentGroupIndex = 0
-        set(value) {
-            field = value
-            title = "Card: ${groups[value].name}"
-            cardAdapter.updateCards(groups[value].cards)
-        }
+    set(value) {
+        field = value
+        title = "Card: ${groups[value].name}"
+        cardAdapter.updateCards(groups[value].cards)
+    }
 
     private lateinit var groupSpinner: Spinner
     private lateinit var recyclerView: RecyclerView
@@ -309,7 +310,7 @@ class MainActivity : AppCompatActivity() {
         val frontInput = dialogView.findViewById<EditText>(R.id.editTextFront)
         val backInput = dialogView.findViewById<EditText>(R.id.editTextBack)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .setTitle("New card")
             .setPositiveButton("Add") { _, _ ->
@@ -322,7 +323,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create() // 👈 Используем .create() вместо .show() сразу
+
+        // 👇 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Установка режима ввода
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+
+        dialog.show() // 👈 Показываем диалог после настройки
     }
 
     private fun showEditCardDialog(position: Int) {
@@ -334,7 +340,7 @@ class MainActivity : AppCompatActivity() {
         frontInput.setText(card.front)
         backInput.setText(card.back)
 
-        AlertDialog.Builder(this)
+        val dialog = AlertDialog.Builder(this)
             .setView(dialogView)
             .setTitle("Edit card")
             .setPositiveButton("Save") { _, _ ->
@@ -348,7 +354,12 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("Cancel", null)
-            .show()
+            .create() // 👈 Используем .create()
+
+        // 👇 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ: Установка режима ввода
+        dialog.window?.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE)
+
+        dialog.show() // 👈 Показываем диалог
     }
 
     private fun showNewGroupDialog() {
