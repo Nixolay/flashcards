@@ -25,15 +25,15 @@ class MainActivity : AppCompatActivity() {
 
     private val groups = mutableListOf<FlashcardGroup>()
     private var currentGroupIndex = 0
-        set(value) {
-            field = value
-            groups[value].cards.forEach { it.isFlipped = false }
-            cardAdapter.updateCards(groups[value].cards)
-            // Обновляем Spinner в Action Bar при смене группы (если он уже создан)
-            if (supportActionBar?.customView is Spinner) {
-                (supportActionBar?.customView as Spinner).setSelection(value)
-            }
+    set(value) {
+        field = value
+        groups[value].cards.forEach { it.isFlipped = false }
+        cardAdapter.updateCards(groups[value].cards)
+        // Обновляем Spinner в Action Bar при смене группы (если он уже создан)
+        if (supportActionBar?.customView is Spinner) {
+            (supportActionBar?.customView as Spinner).setSelection(value)
         }
+    }
 
     private lateinit var groupSpinner: Spinner
     private lateinit var recyclerView: RecyclerView
